@@ -25,7 +25,7 @@ func TestCacheSharedFilesystem(t *testing.T) {
 	sysCfg := baseSysCfg(t)
 	sysCfg.CacheProfiles = map[string]config.CacheProfile{
 		cacheProfileName: {
-			SharedFilesystem: &config.CacheSharedFilesystem{
+			SharedFilesystem: &config.CacheFilesystem{
 				StorageClassName:     "my-storage-class",
 				PersistentVolumeName: "my-pv",
 			},

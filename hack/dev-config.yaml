@@ -39,11 +39,11 @@ resourceProfiles:
     imageName: "cpu"
     requests:
       # Kind
-      #cpu: 0.5
-      #memory: 1Gi
+      cpu: 0.5
+      memory: 1Gi
       # GKE
-      cpu: 3
-      memory: 12Gi
+      # cpu: 3
+      # memory: 12Gi
     limits:
       cpu: 3
       memory: 12Gi
@@ -54,18 +54,45 @@ resourceProfiles:
       nvidia.com/gpu: "1"
       cpu: "6"
       memory: "24Gi"
+  gpu:
+    imageName: "nvidia-gpu"
+    limits:
+      nvidia.com/gpu: "1"
+    requests:
+      nvidia.com/gpu: "1"
+      cpu: "2"
+      memory: "8Gi"
+    nodeSelector:
+      nvidia.com/gpu.product: "NVIDIA-GeForce-RTX-4090"
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
 
 cacheProfiles:
   fstore:
     sharedFilesystem:
       #storageClassName: "kubeai-filestore"
-      persistentVolumeName: "preprov1"
+      storageClassName: "cephfs-ssd-1"
+  podlevel:
+    modelFilesystem:
+      storageClassName: "cephfs-ssd-1"
 
 # Dev-only configuration.
 allowPodAddressOverride: true
-fixedSelfMetricAddrs: ["127.0.0.1:"]
+fixedSelfMetricAddrs: ["127.0.0.1:8080"]
 
 modelAutoscaling:
   interval: 10s
   timeWindow: 60s
   stateConfigMapName: kubeai-autoscaler-state
+
+modelLoaders:
+  huggingface:
+    image: "substratusai/huggingface-model-loader:v0.9.0"
+
+modelEvaluators:
+  huggingface:
+    image: "ghcr.io/radu-catrangiu/llm-size-service:latest"
+    devProxyHost: "127.0.0.1"

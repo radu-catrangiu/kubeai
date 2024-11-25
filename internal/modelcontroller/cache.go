@@ -9,6 +9,7 @@ import (
 
 	kubeaiv1 "github.com/substratusai/kubeai/api/v1"
 	"github.com/substratusai/kubeai/internal/k8sutils"
+	"github.com/substratusai/kubeai/internal/modelevaluator"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,9 +55,11 @@ func (r *ModelReconciler) reconcileCache(ctx context.Context, model *kubeaiv1.Mo
 			pvc = r.cachePVCForModel(model, cfg)
 			// TODO: Set controller reference on PVC for 1:1 Model to PVC situations
 			// such as Google Hyperdisk ML.
-			//if err := controllerutil.SetControllerReference(model, pvc, r.Scheme); err != nil {
-			//	return ctrl.Result{}, fmt.Errorf("setting controller reference on pvc: %w", err)
-			//}
+			if cfg.CacheProfile.ModelFilesystem != nil {
+				if err := controllerutil.SetControllerReference(model, pvc, r.Scheme); err != nil {
+					return ctrl.Result{}, fmt.Errorf("setting controller reference on pvc: %w", err)
+				}
+			}
 			if err := r.Create(ctx, pvc); err != nil {
 				return ctrl.Result{}, fmt.Errorf("creating cache PVC: %w", err)
 			}
@@ -272,6 +275,11 @@ func (r *ModelReconciler) updatePVCModelAnnotation(ctx context.Context, pvc *cor
 }
 
 func (r *ModelReconciler) cachePVCForModel(m *kubeaiv1.Model, c ModelConfig) *corev1.PersistentVolumeClaim {
+	modelSize, err := modelevaluator.GetModelSize(c.Source.huggingface.repo)
+	if err != nil {
+		modelSize = "10Gi"
+	}
+
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cachePVCName(m, c),
@@ -288,6 +296,14 @@ func (r *ModelReconciler) cachePVCForModel(m *kubeaiv1.Model, c ModelConfig) *co
 		pvc.Spec.Resources.Requests = corev1.ResourceList{
 			// https://discuss.huggingface.co/t/how-to-get-model-size/11038/7
 			corev1.ResourceStorage: resource.MustParse("10Gi"),
+		}
+	case c.CacheProfile.ModelFilesystem != nil:
+		pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}
+		storageClassName := c.CacheProfile.ModelFilesystem.StorageClassName
+		pvc.Spec.StorageClassName = &storageClassName
+		pvc.Spec.VolumeName = c.CacheProfile.ModelFilesystem.PersistentVolumeName
+		pvc.Spec.Resources.Requests = corev1.ResourceList{
+			corev1.ResourceStorage: resource.MustParse(modelSize),
 		}
 	default:
 		panic("unsupported cache profile, this point should not be reached")

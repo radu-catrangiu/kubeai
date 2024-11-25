@@ -40,6 +40,11 @@ modelLoaders:
   huggingface:
     image: "substratusai/huggingface-model-loader:v0.9.0"
 
+modelEvaluators:
+  huggingface:
+    image: "ghcr.io/radu-catrangiu/llm-size-service:latest"
+    devProxyHost: ""
+
 modelServerPods:
   # Security Context for the model pods
   # Needed for OpenShift

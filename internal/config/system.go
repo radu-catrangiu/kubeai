@@ -17,6 +17,8 @@ type System struct {
 
 	ModelLoaders ModelLoaders `json:"modelLoaders" validate:"required"`
 
+	ModelEvaluators ModelEvaluators `json:"modelEvaluators" validate:"required"`
+
 	ResourceProfiles map[string]ResourceProfile `json:"resourceProfiles" validate:"required"`
 
 	CacheProfiles map[string]CacheProfile `json:"cacheProfiles"`
@@ -196,10 +198,11 @@ type ResourceProfile struct {
 }
 
 type CacheProfile struct {
-	SharedFilesystem *CacheSharedFilesystem `json:"sharedFilesystem,omitempty"`
+	ModelFilesystem  *CacheFilesystem `json:"modelFilesystem,omitempty" validate:"required_without=SharedFilesystem"`
+	SharedFilesystem *CacheFilesystem `json:"sharedFilesystem,omitempty" validate:"required_without=ModelFilesystem"`
 }
 
-type CacheSharedFilesystem struct {
+type CacheFilesystem struct {
 	// StorageClassName is the name of the StorageClass to use for the shared filesystem.
 	StorageClassName string `json:"storageClassName,omitempty" validate:"required_without=PersistentVolumeName"`
 	// PersistentVolumeName is the name of the PersistentVolume to use for the shared filesystem.
@@ -244,4 +247,13 @@ type ModelServerPods struct {
 
 	// Security Context for the model pod containers
 	ModelContainerSecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+}
+
+type ModelEvaluator struct {
+	Image        string `json:"image" validate:"required"`
+	DevProxyHost string `json:"devProxyHost"`
+}
+
+type ModelEvaluators struct {
+	Huggingface ModelEvaluator `json:"huggingface" validate:"required"`
 }

@@ -34,6 +34,7 @@ import (
 	"github.com/substratusai/kubeai/internal/messenger"
 	"github.com/substratusai/kubeai/internal/modelautoscaler"
 	"github.com/substratusai/kubeai/internal/modelcontroller"
+	"github.com/substratusai/kubeai/internal/modelevaluator"
 	"github.com/substratusai/kubeai/internal/modelproxy"
 	"github.com/substratusai/kubeai/internal/modelscaler"
 	"github.com/substratusai/kubeai/internal/openaiserver"
@@ -179,6 +180,11 @@ func Run(ctx context.Context, k8sCfg *rest.Config, cfg config.System) error {
 	if err != nil {
 		return fmt.Errorf("unable to create client: %w", err)
 	}
+
+	modelevaluator.Init(ctx, k8sClient, namespace, cfg)
+	defer func() {
+		modelevaluator.Cleanup(ctx, k8sClient, namespace)
+	}()
 
 	hostname, err := os.Hostname()
 	if err != nil {
